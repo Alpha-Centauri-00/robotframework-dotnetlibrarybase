@@ -5,6 +5,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Version>0.0.1</Version>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\RobotFramework.DotNetLibraryBase\RobotFramework.DotNetLibraryBase.csproj" />
+  </ItemGroup>
 
 </Project>
