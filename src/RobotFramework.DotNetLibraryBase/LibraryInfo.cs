@@ -8,6 +8,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Linq;
+using System.Xml;
+#pragma warning disable 1591
 
 internal enum RobotLibraryConstants
 {
@@ -44,7 +47,23 @@ public class KeywordInfo
         if (Methods.Length == 0)
             throw new ArgumentException("At least one method is required", nameof(methods));
 
-        _documentation = new Lazy<string?>(() => null); // TODO: Get doc from attribute
+        _documentation = new Lazy<string?>(() => {
+            // Try to get documentation from custom attribute first
+            var docAttribute = Methods[0].GetCustomAttribute<RobotKeywordDocumentationAttribute>();
+            var attributeDoc = docAttribute?.Documentation;
+
+            // Get XML documentation
+            var xmlDoc = Methods[0].GetXmlDocumentation();
+
+            // If we have both, combine them
+            if (!string.IsNullOrEmpty(attributeDoc) && !string.IsNullOrEmpty(xmlDoc))
+            {
+                return $"{xmlDoc}\n\nAdditional Notes:\n{attributeDoc}";
+            }
+
+            // Return whichever one is available
+            return attributeDoc ?? xmlDoc;
+        });
         _tags = new Lazy<string[]>(() => Array.Empty<string>()); // TODO: Get tags from attribute
         _arguments = new Lazy<ArgumentInfo[]>(CollectArguments);
     }
