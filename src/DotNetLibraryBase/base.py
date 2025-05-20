@@ -263,6 +263,17 @@ class DotNetLibraryBase(DynamicLibrary):
 
         return {i.Name: [self._convert_type(t) for t in i.Types] for i in keyword_info.Arguments}
 
+    def get_keyword_documentation(self, name: str) -> Optional[str]:
+        """Get documentation for the given keyword."""
+        if self._library_info is None:
+            return None
+        try:
+            keyword_info = self._library_info.Keywords[name]
+            doc = keyword_info.Documentation
+            return str(doc) if doc is not None else None
+        except Exception:
+            return None
+        
     def run_keyword(self, name: str, args: Sequence[Any], kwargs: Mapping[str, Any]) -> Any:
         method = getattr(self._instance, name)
         real_args = list(args)
