@@ -4,6 +4,7 @@
 
 namespace RobotFramework.DotNetLibraryBase;
 
+using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -27,51 +28,33 @@ public static class ReflectionExtensions
 
             // Load and parse the XML documentation
             var doc = XDocument.Load(xmlPath);
-
+            
             // Build the member ID that matches the XML documentation format
-            var memberName = $"M:{methodInfo.DeclaringType?.FullName}.{methodInfo.Name}";
-
+            var parameters = methodInfo.GetParameters();
+            var parameterTypes = parameters.Length == 0 
+                ? string.Empty 
+                : $"({string.Join(",", parameters.Select(p => p.ParameterType.FullName))})";
+            
+            var memberName = $"M:{methodInfo.DeclaringType?.FullName}.{methodInfo.Name}{parameterTypes}";
+            
             // Find the member documentation
             var member = doc.Root?.Elements("members")
                            .Elements("member")
                            .FirstOrDefault(m => m.Attribute("name")?.Value == memberName);
 
-            if (member == null) return null;
-
-            // Build complete documentation including summary, params, and returns
-            var documentation = new StringBuilder();
-
-            // Add summary
-            var summary = member.Element("summary");
-            if (summary != null)
+            if (member == null) 
             {
-                documentation.AppendLine(summary.Value.Trim());
-                documentation.AppendLine();
+                // Try without parameter types if not found (for backward compatibility)
+                memberName = $"M:{methodInfo.DeclaringType?.FullName}.{methodInfo.Name}";
+                member = doc.Root?.Elements("members")
+                           .Elements("member")
+                           .FirstOrDefault(m => m.Attribute("name")?.Value.StartsWith(memberName) == true);
+                
+                if (member == null) return null;
             }
 
-            // Add parameters
-            var parameters = member.Elements("param");
-            if (parameters.Any())
-            {
-                documentation.AppendLine("Parameters:");
-                foreach (var param in parameters)
-                {
-                    var name = param.Attribute("name")?.Value;
-                    var description = param.Value.Trim();
-                    documentation.AppendLine($"- {name}: {description}");
-                }
-                documentation.AppendLine();
-            }
-
-            // Add return value
-            var returns = member.Element("returns");
-            if (returns != null)
-            {
-                documentation.AppendLine("Returns:");
-                documentation.AppendLine(returns.Value.Trim());
-            }
-
-            return documentation.ToString().Trim();
+            // Return just the summary content
+            return member.Element("summary")?.Value.Trim();
         }
         catch
         {

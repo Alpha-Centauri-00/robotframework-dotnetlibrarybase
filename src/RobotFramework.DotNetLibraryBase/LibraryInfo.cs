@@ -48,21 +48,17 @@ public class KeywordInfo
             throw new ArgumentException("At least one method is required", nameof(methods));
 
         _documentation = new Lazy<string?>(() => {
-            // Try to get documentation from custom attribute first
-            var docAttribute = Methods[0].GetCustomAttribute<RobotKeywordDocumentationAttribute>();
-            var attributeDoc = docAttribute?.Documentation;
-
-            // Get XML documentation
+            // Get XML documentation first
             var xmlDoc = Methods[0].GetXmlDocumentation();
 
-            // If we have both, combine them
-            if (!string.IsNullOrEmpty(attributeDoc) && !string.IsNullOrEmpty(xmlDoc))
+            // Only if XML doc is not available, try attribute
+            if (string.IsNullOrEmpty(xmlDoc))
             {
-                return $"{xmlDoc}\n\nAdditional Notes:\n{attributeDoc}";
+                var docAttribute = Methods[0].GetCustomAttribute<RobotKeywordDocumentationAttribute>();
+                return docAttribute?.Documentation;
             }
 
-            // Return whichever one is available
-            return attributeDoc ?? xmlDoc;
+            return xmlDoc;
         });
         _tags = new Lazy<string[]>(() => Array.Empty<string>()); // TODO: Get tags from attribute
         _arguments = new Lazy<ArgumentInfo[]>(CollectArguments);

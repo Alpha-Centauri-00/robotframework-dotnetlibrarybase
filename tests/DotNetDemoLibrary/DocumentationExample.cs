@@ -5,7 +5,6 @@
 namespace DotNetDemoLibrary;
 
 using System;
-using RobotFramework.DotNetLibraryBase;
 
 /// <summary>
 /// Provides examples of using this class to see the docu
@@ -29,7 +28,6 @@ public class DocumentationExample
     /// </summary>
     /// <param name="text">The text to display</param>
     /// <param name="count">Number of times to repeat</param>
-    [RobotKeywordDocumentation("This is an example of attribute-based documentation")]
     public void AttributeDocumentedKeyword(string text, int count = 1)
     {
         for (int i = 0; i < count; i++)
@@ -43,7 +41,6 @@ public class DocumentationExample
     /// </summary>
     /// <param name="message">Optional message to display</param>
     /// <returns>The message that was displayed</returns>
-    [RobotKeywordDocumentation("...and attribute documentation (this one will take precedence)")]
     public string BothDocumentationTypesKeyword(string message = "Default message")
     {
         Console.WriteLine(message);
