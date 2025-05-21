@@ -11,7 +11,6 @@ using System.Reflection;
 using System.Xml.Linq;
 using System.Text;
 
-#pragma warning disable 1591
 public static class ReflectionExtensions
 {
     public static string? GetXmlDocumentation(this MethodInfo methodInfo)
@@ -29,29 +28,13 @@ public static class ReflectionExtensions
             // Load and parse the XML documentation
             var doc = XDocument.Load(xmlPath);
             
-            // Build the member ID that matches the XML documentation format
-            var parameters = methodInfo.GetParameters();
-            var parameterTypes = parameters.Length == 0 
-                ? string.Empty 
-                : $"({string.Join(",", parameters.Select(p => p.ParameterType.FullName))})";
+            // Try to find the member with exact match first
+            var member = TryFindMember(doc, methodInfo, exact: true);
             
-            var memberName = $"M:{methodInfo.DeclaringType?.FullName}.{methodInfo.Name}{parameterTypes}";
+            // If not found, try a more lenient search
+            member ??= TryFindMember(doc, methodInfo, exact: false);
             
-            // Find the member documentation
-            var member = doc.Root?.Elements("members")
-                           .Elements("member")
-                           .FirstOrDefault(m => m.Attribute("name")?.Value == memberName);
-
-            if (member == null) 
-            {
-                // Try without parameter types if not found (for backward compatibility)
-                memberName = $"M:{methodInfo.DeclaringType?.FullName}.{methodInfo.Name}";
-                member = doc.Root?.Elements("members")
-                           .Elements("member")
-                           .FirstOrDefault(m => m.Attribute("name")?.Value.StartsWith(memberName) == true);
-                
-                if (member == null) return null;
-            }
+            if (member == null) return null;
 
             // Return just the summary content
             return member.Element("summary")?.Value.Trim();
@@ -61,5 +44,68 @@ public static class ReflectionExtensions
             // If anything goes wrong, return null
             return null;
         }
+    }
+
+    private static XElement? TryFindMember(XDocument doc, MethodInfo methodInfo, bool exact)
+    {
+        var typeName = methodInfo.DeclaringType?.FullName ?? string.Empty;
+        var methodName = methodInfo.Name;
+        
+        // Get all member elements
+        var members = doc.Root?.Elements("members")
+                       .Elements("member")
+                       .Where(m => m.Attribute("name")?.Value.StartsWith($"M:{typeName}.{methodName}") == true)
+                       .ToList();
+        
+        if (members == null || !members.Any()) 
+            return null;
+            
+        if (exact)
+        {
+            // Try to find exact match with parameters
+            var parameters = methodInfo.GetParameters();
+            var parameterTypes = parameters.Length == 0 
+                ? string.Empty 
+                : $"({string.Join(",", parameters.Select(GetTypeNameForXmlDoc))})";
+                
+            var exactName = $"M:{typeName}.{methodName}{parameterTypes}";
+            return members.FirstOrDefault(m => 
+                string.Equals(m.Attribute("name")?.Value, exactName, StringComparison.Ordinal));
+        }
+        
+        // Return first match (most specific one)
+        return members.FirstOrDefault();
+    }
+    
+    private static string GetTypeNameForXmlDoc(ParameterInfo parameter)
+    {
+        return GetTypeNameForXmlDoc(parameter.ParameterType);
+    }
+    
+    private static string GetTypeNameForXmlDoc(Type type)
+    {
+        // Handle array types
+        if (type.IsArray)
+        {
+            return $"{GetTypeNameForXmlDoc(type.GetElementType()!)}[]";
+        }
+        
+        // Handle generic types
+        if (type.IsGenericType)
+        {
+            var name = type.Name.Split('`')[0];
+            var args = string.Join(",", type.GetGenericArguments().Select(t => GetTypeNameForXmlDoc(t)));
+            return $"{name}{{{args}}}";
+        }
+        
+        // Handle nullable value types
+        var underlyingType = Nullable.GetUnderlyingType(type);
+        if (underlyingType != null)
+        {
+            return $"{GetTypeNameForXmlDoc(underlyingType)}?";
+        }
+        
+        // Default case - use full name
+        return type.FullName ?? type.Name;
     }
 }
