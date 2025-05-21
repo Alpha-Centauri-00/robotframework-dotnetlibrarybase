@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2024 Daniel Biehl <daniel.biehl@imbus.de>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# robotframework-DotNetLibraryBase.NET
+# robotframework-DotNetLibraryBase
 
 [![PyPI - Version](https://img.shields.io/pypi/v/robotframework-dotnetlibrarybase.svg)](https://pypi.org/project/robotframework-dotnetlibrarybase)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/robotframework-dotnetlibrarybase.svg)](https://pypi.org/project/robotframework-dotnetlibrarybase)
